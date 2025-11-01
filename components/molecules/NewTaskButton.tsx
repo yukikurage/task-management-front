@@ -3,7 +3,13 @@
 import { useState } from "react";
 import { TaskCreateModal } from "./TaskCreateModal";
 
-export function NewTaskButton({ onSuccess }: { onSuccess?: () => void }) {
+export function NewTaskButton({
+  onSuccess,
+  defaultOrganizationId,
+}: {
+  onSuccess?: () => void;
+  defaultOrganizationId?: number;
+}) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleClick = () => {
@@ -44,6 +50,7 @@ export function NewTaskButton({ onSuccess }: { onSuccess?: () => void }) {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={handleSuccess}
+        defaultOrganizationId={defaultOrganizationId}
       />
     </>
   );

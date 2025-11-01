@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { apiClient } from "@/lib/api-client";
 import { components } from "@/lib/api-schema";
 
@@ -29,13 +29,7 @@ export function AssignUserModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchMembers();
-    }
-  }, [isOpen, organizationId]);
-
-  const fetchMembers = async () => {
+  const fetchMembers = useCallback(async () => {
     setIsLoading(true);
     setError("");
     try {
@@ -56,7 +50,13 @@ export function AssignUserModal({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [organizationId]);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchMembers();
+    }
+  }, [fetchMembers, isOpen]);
 
   const handleToggleUser = (userId: number) => {
     setSelectedUserIds((prev) =>
@@ -78,16 +78,19 @@ export function AssignUserModal({
     setError("");
 
     try {
-      const { error: apiError } = await apiClient.POST("/api/tasks/{id}/assign", {
-        params: {
-          path: {
-            id: taskId,
+      const { error: apiError } = await apiClient.POST(
+        "/api/tasks/{id}/assign",
+        {
+          params: {
+            path: {
+              id: taskId,
+            },
           },
-        },
-        body: {
-          user_ids: selectedUserIds,
-        },
-      });
+          body: {
+            user_ids: selectedUserIds,
+          },
+        }
+      );
 
       if (apiError) {
         setError("ユーザーの割り当てに失敗しました。");
@@ -115,7 +118,7 @@ export function AssignUserModal({
 
   // Filter out already assigned users
   const availableMembers = members.filter(
-    (member) => !currentAssignments.includes(member.user_id)
+    (member) => !currentAssignments.includes(member.user.id)
   );
 
   return (
@@ -129,7 +132,9 @@ export function AssignUserModal({
       >
         {/* Header */}
         <div className="flex flex-col gap-2">
-          <h2 className="text-2xl font-normal text-text-primary">Assign Users</h2>
+          <h2 className="text-2xl font-normal text-text-primary">
+            Assign Users
+          </h2>
         </div>
 
         {/* Form */}
@@ -139,22 +144,24 @@ export function AssignUserModal({
             {isLoading ? (
               <p className="text-text-tertiary">読み込み中...</p>
             ) : availableMembers.length === 0 ? (
-              <p className="text-text-tertiary">割り当て可能なユーザーがいません。</p>
+              <p className="text-text-tertiary">
+                割り当て可能なユーザーがいません。
+              </p>
             ) : (
               availableMembers.map((member) => (
                 <label
-                  key={member.user_id}
+                  key={member.user.id}
                   className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-gray-50 cursor-pointer transition-colors"
                 >
                   <input
                     type="checkbox"
-                    checked={selectedUserIds.includes(member.user_id)}
-                    onChange={() => handleToggleUser(member.user_id)}
+                    checked={selectedUserIds.includes(member.user.id)}
+                    onChange={() => handleToggleUser(member.user.id)}
                     className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary focus:ring-2"
                   />
                   <span className="text-sm font-medium text-text-secondary">
                     <span className="text-text-tertiary">@</span>
-                    {member.user?.username}
+                    {member.user.username}
                   </span>
                 </label>
               ))

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { apiClient } from "@/lib/api-client";
 import { components } from "@/lib/api-schema";
 import { UserTip } from "@/components/atoms/UserTip";
+import { Button } from "../atoms/Button";
 
 type Organization = components["schemas"]["Organization"];
 type OrganizationMember = components["schemas"]["OrganizationMember"];
@@ -26,13 +27,7 @@ export function OrganizationDetailModal({
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (isOpen && organizationId) {
-      fetchOrganizationDetails();
-    }
-  }, [isOpen, organizationId]);
-
-  const fetchOrganizationDetails = async () => {
+  const fetchOrganizationDetails = useCallback(async () => {
     setIsLoading(true);
     setError("");
     try {
@@ -45,7 +40,7 @@ export function OrganizationDetailModal({
       });
 
       if (data) {
-        setOrganization(data.organization || null);
+        setOrganization(data);
         setMembers(data.members || []);
         setYourRole(data.your_role || "");
       }
@@ -55,7 +50,13 @@ export function OrganizationDetailModal({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [organizationId]);
+
+  useEffect(() => {
+    if (isOpen && organizationId) {
+      fetchOrganizationDetails();
+    }
+  }, [isOpen, organizationId, fetchOrganizationDetails]);
 
   const handleCopyInviteCode = () => {
     if (organization?.invite_code) {
@@ -129,23 +130,20 @@ export function OrganizationDetailModal({
                 Invite Code
               </label>
               <div className="flex gap-2">
-                <div className="flex-1 px-4 py-2.5 bg-gray-50 border border-border rounded-lg text-text-primary font-mono">
+                <div className="flex-1 px-4 py-2 bg-gray-50 border border-border rounded-lg text-text-primary font-mono">
                   {organization?.invite_code}
                 </div>
-                <button
-                  onClick={handleCopyInviteCode}
-                  className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-sm font-medium rounded-lg transition-colors"
-                >
+                <Button onClick={handleCopyInviteCode} variant="primary">
                   Copy
-                </button>
+                </Button>
                 {yourRole === "owner" && (
-                  <button
+                  <Button
                     onClick={handleRegenerateCode}
+                    variant="secondary"
                     disabled={isRegenerating}
-                    className="px-6 py-2.5 bg-white hover:bg-gray-50 border border-border text-text-secondary text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isRegenerating ? "更新中..." : "更新"}
-                  </button>
+                    {isRegenerating ? "Regenerating..." : "Regenerate"}
+                  </Button>
                 )}
               </div>
             </div>
@@ -158,8 +156,8 @@ export function OrganizationDetailModal({
               <div className="flex flex-wrap gap-2 overflow-y-auto max-h-64">
                 {members.map((member) => (
                   <UserTip
-                    key={member.user_id}
-                    username={member.user?.username || "Unknown"}
+                    key={member.user.id}
+                    username={member.user.username}
                   />
                 ))}
               </div>

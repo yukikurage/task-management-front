@@ -17,7 +17,7 @@ export default function Home() {
     const formData = new FormData(e.currentTarget);
     const { data, error } = await apiClient.POST("/api/auth/signup", {
       body: {
-        email: formData.get("email") as string,
+        username: formData.get("username") as string,
         password: formData.get("password") as string,
       },
     });
@@ -29,7 +29,7 @@ export default function Home() {
     const formData = new FormData(e.currentTarget);
     const { data, error } = await apiClient.POST("/api/auth/login", {
       body: {
-        email: formData.get("email") as string,
+        username: formData.get("username") as string,
         password: formData.get("password") as string,
       },
     });
@@ -145,7 +145,7 @@ export default function Home() {
 
         {currentUser && (
           <div className="mb-4 p-4 bg-green-100 rounded">
-            Logged in as: {currentUser.email}
+            Logged in as: {currentUser.username}
           </div>
         )}
 
@@ -193,9 +193,8 @@ export default function Home() {
                   <h2 className="text-xl font-bold mb-4">Signup</h2>
                   <form onSubmit={handleSignup} className="space-y-2">
                     <input
-                      name="email"
-                      type="email"
-                      placeholder="Email"
+                      name="username"
+                      placeholder="Username"
                       className="w-full p-2 border rounded"
                       required
                     />
@@ -219,9 +218,8 @@ export default function Home() {
                   <h2 className="text-xl font-bold mb-4">Login</h2>
                   <form onSubmit={handleLogin} className="space-y-2">
                     <input
-                      name="email"
-                      type="email"
-                      placeholder="Email"
+                      name="username"
+                      placeholder="Username"
                       className="w-full p-2 border rounded"
                       required
                     />

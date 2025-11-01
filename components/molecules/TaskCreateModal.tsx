@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/atoms/Input";
 import { Textarea } from "@/components/atoms/Textarea";
 import { Select } from "@/components/atoms/Select";
 import { apiClient } from "@/lib/api-client";
 import { components } from "@/lib/api-schema";
+import { Button } from "../atoms/Button";
 
 type Organization = components["schemas"]["Organization"];
 
@@ -13,12 +14,14 @@ interface TaskCreateModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  defaultOrganizationId?: number;
 }
 
 export function TaskCreateModal({
   isOpen,
   onClose,
   onSuccess,
+  defaultOrganizationId,
 }: TaskCreateModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -31,21 +34,19 @@ export function TaskCreateModal({
   const [newOrgName, setNewOrgName] = useState("");
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchOrganizations();
-    }
-  }, [isOpen]);
-
-  const fetchOrganizations = async () => {
+  const fetchOrganizations = useCallback(async () => {
     setIsLoadingOrgs(true);
     try {
       const { data } = await apiClient.GET("/api/organizations");
       if (data?.organizations) {
         setOrganizations(data.organizations);
-        // Set first organization as default if available
-        if (data.organizations.length > 0 && !organizationId) {
-          setOrganizationId(String(data.organizations[0].id));
+        // Set default organization if provided, otherwise use first organization
+        if (!organizationId) {
+          if (defaultOrganizationId) {
+            setOrganizationId(String(defaultOrganizationId));
+          } else if (data.organizations.length > 0) {
+            setOrganizationId(String(data.organizations[0].id));
+          }
         }
       }
     } catch (error) {
@@ -53,7 +54,13 @@ export function TaskCreateModal({
     } finally {
       setIsLoadingOrgs(false);
     }
-  };
+  }, [defaultOrganizationId, organizationId]);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchOrganizations();
+    }
+  }, [fetchOrganizations, isOpen]);
 
   const handleCreateOrganization = async () => {
     if (!newOrgName.trim()) {
@@ -83,6 +90,7 @@ export function TaskCreateModal({
       setOrganizations([...organizations, data]);
       setOrganizationId(String(data.id));
       setNewOrgName("");
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       setError("組織の作成中にエラーが発生しました。");
     } finally {
@@ -123,6 +131,7 @@ export function TaskCreateModal({
       setOrganizationId("");
       onSuccess();
       onClose();
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       setError("タスクの作成中にエラーが発生しました。");
     } finally {
@@ -241,20 +250,21 @@ export function TaskCreateModal({
 
           {/* Buttons */}
           <div className="flex gap-3 justify-end">
-            <button
+            <Button
               type="button"
               onClick={handleClose}
-              className="px-6 py-2.5 text-sm font-medium text-text-secondary hover:text-text-primary transition-colors"
+              variant="tertiary"
+              disabled={isLoading}
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={isLoading}
-              className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isLoading || !title.trim()}
+              variant="primary"
             >
               {isLoading ? "Creating..." : "Create Task"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

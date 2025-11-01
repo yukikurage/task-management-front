@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { Cog6ToothIcon } from "@heroicons/react/24/outline";
 import { SectionTitle } from "@/components/atoms/SectionTitle";
 import { TaskCardList } from "@/components/organisms/TaskCardList";
 import { TaskCardGrid } from "@/components/organisms/TaskCardGrid";
 import { TaskDetailModal } from "@/components/molecules/TaskDetailModal";
+import { OrganizationDetailModal } from "@/components/molecules/OrganizationDetailModal";
 import { NewTaskButton } from "@/components/molecules/NewTaskButton";
 import { ChatPanel } from "@/components/molecules/ChatPanel";
 import { apiClient } from "@/lib/api-client";
@@ -13,58 +15,93 @@ import { components } from "@/lib/api-schema";
 
 type Task = components["schemas"]["Task"];
 type TaskSummary = components["schemas"]["TaskListItem"];
+type Organization = components["schemas"]["Organization"];
 
-interface HomeProps {
+interface OrganizationHomeProps {
   refreshKey?: number;
+  organizationId: number;
   onTaskCreated?: () => void;
 }
 
-export function Home({ refreshKey, onTaskCreated }: HomeProps) {
+export function OrganizationHome({
+  refreshKey,
+  organizationId,
+  onTaskCreated,
+}: OrganizationHomeProps) {
   const [todayTasks, setTodayTasks] = useState<TaskSummary[]>([]);
-  const [assignedTasks, setAssignedTasks] = useState<TaskSummary[]>([]);
+  const [allTasks, setAllTasks] = useState<TaskSummary[]>([]);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentOrganization, setCurrentOrganization] =
+    useState<Organization | null>(null);
+  const [isOrgModalOpen, setIsOrgModalOpen] = useState(false);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+  const [showOnlyAssigned, setShowOnlyAssigned] = useState(false);
 
   useEffect(() => {
     setPortalTarget(document.getElementById("floating-space"));
   }, []);
 
-  const fetchTasks = async () => {
+  useEffect(() => {
+    const fetchOrganization = async () => {
+      try {
+        const { data } = await apiClient.GET("/api/organizations/{id}", {
+          params: {
+            path: {
+              id: organizationId,
+            },
+          },
+        });
+        if (data) {
+          setCurrentOrganization(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch organization:", error);
+      }
+    };
+
+    if (organizationId) {
+      fetchOrganization();
+    }
+  }, [organizationId]);
+
+  const fetchTasks = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Fetch today's tasks assigned to me (due today)
+      // Fetch today's tasks (due today)
       const { data: todayData } = await apiClient.GET("/api/tasks", {
         params: {
           query: {
             due_today: true,
-            assigned_to_me: true,
+            organization_id: organizationId,
+            ...(showOnlyAssigned && { assigned_to_me: true }),
           },
         },
       });
       setTodayTasks(todayData?.tasks || []);
 
-      // Fetch all assigned tasks (sorted by due date)
-      const { data: assignedData } = await apiClient.GET("/api/tasks", {
+      // Fetch all tasks (sorted by due date)
+      const { data: allData } = await apiClient.GET("/api/tasks", {
         params: {
           query: {
-            assigned_to_me: true,
+            organization_id: organizationId,
             sort: "due_date",
+            ...(showOnlyAssigned && { assigned_to_me: true }),
           },
         },
       });
-      setAssignedTasks(assignedData?.tasks || []);
+      setAllTasks(allData?.tasks || []);
     } catch (error) {
       console.error("Failed to fetch tasks:", error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [organizationId, showOnlyAssigned]);
 
   useEffect(() => {
     fetchTasks();
-  }, [refreshKey]);
+  }, [refreshKey, fetchTasks]);
 
   const handleTaskClick = async (task: TaskSummary) => {
     try {
@@ -97,6 +134,28 @@ export function Home({ refreshKey, onTaskCreated }: HomeProps) {
 
   return (
     <div className="flex flex-col gap-12 pt-24 pb-32 w-full">
+      {/* Organization Header */}
+      {currentOrganization && (
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => setIsOrgModalOpen(true)}
+            className="group inline-flex items-center gap-2 rounded-lg border border-transparent text-lg font-medium text-text-primary transition-all duration-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+          >
+            <span>{currentOrganization.name}</span>
+            <Cog6ToothIcon className="h-5 w-5 text-text-tertiary transition-colors duration-200 group-hover:text-primary" />
+          </button>
+          <label className="flex items-center gap-2 text-sm text-text-secondary cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showOnlyAssigned}
+              onChange={(e) => setShowOnlyAssigned(e.target.checked)}
+              className="cursor-pointer"
+            />
+            自分にアサインされたタスクのみ表示
+          </label>
+        </div>
+      )}
+
       {/* Today Section */}
       <div className="flex flex-col gap-6 w-full">
         <SectionTitle>Today</SectionTitle>
@@ -108,13 +167,13 @@ export function Home({ refreshKey, onTaskCreated }: HomeProps) {
         />
       </div>
 
-      {/* Assigned Section */}
+      {/* All Section */}
       <div className="flex flex-col gap-6 w-full">
-        <SectionTitle>Assigned</SectionTitle>
+        <SectionTitle>All</SectionTitle>
         <TaskCardGrid
-          tasks={assignedTasks}
+          tasks={allTasks}
           isLoading={isLoading}
-          emptyMessage="割り当てられたタスクはありません"
+          emptyMessage="タスクはありません"
           onTaskClick={handleTaskClick}
         />
       </div>
@@ -129,19 +188,33 @@ export function Home({ refreshKey, onTaskCreated }: HomeProps) {
         onTaskUpdate={fetchTasks}
       />
 
+      {currentOrganization && (
+        <OrganizationDetailModal
+          isOpen={isOrgModalOpen}
+          onClose={() => setIsOrgModalOpen(false)}
+          organizationId={currentOrganization.id}
+        />
+      )}
+
       {/* Floating elements via Portal */}
       {portalTarget &&
         createPortal(
           <>
             <div className="absolute bottom-[116px] right-0 pointer-events-none">
               <div className="pointer-events-auto">
-                <NewTaskButton onSuccess={handleTaskCreated} />
+                <NewTaskButton
+                  onSuccess={handleTaskCreated}
+                  defaultOrganizationId={organizationId}
+                />
               </div>
             </div>
 
             <div className="absolute bottom-8 left-0 w-full pointer-events-none">
               <div className="pointer-events-auto">
-                <ChatPanel onSuccess={handleTaskCreated} />
+                <ChatPanel
+                  defaultOrganizationId={organizationId}
+                  onSuccess={handleTaskCreated}
+                />
               </div>
             </div>
           </>,

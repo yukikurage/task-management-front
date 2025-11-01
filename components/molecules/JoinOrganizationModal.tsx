@@ -9,7 +9,7 @@ import { apiClient } from "@/lib/api-client";
 interface JoinOrganizationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (organizationId: number) => void;
 }
 
 export function JoinOrganizationModal({
@@ -44,7 +44,7 @@ export function JoinOrganizationModal({
         }
       );
 
-      if (apiError || !data) {
+      if (apiError || !data || !data.organization) {
         setError("組織への参加に失敗しました。招待コードを確認してください。");
         return;
       }
@@ -52,7 +52,9 @@ export function JoinOrganizationModal({
       setInviteCode("");
       onClose();
       // Navigate to the organization page
-      router.push(`/organizations/${data.organization.id}`);
+      const organizationId = data.organization.id;
+      router.push(`/organizations/${organizationId}`);
+      onSuccess(organizationId);
     } catch (err) {
       setError("組織への参加中にエラーが発生しました。");
       console.error("Error joining organization:", err);
@@ -67,78 +69,82 @@ export function JoinOrganizationModal({
     onClose();
   };
 
-  if (!isOpen) return null;
+  if (!isOpen && !isCreateModalOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={handleClose}
-    >
-      <div
-        className="bg-white rounded-xl border border-border w-full max-w-md p-8 flex flex-col gap-6 relative"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex flex-col gap-2">
-          <h2 className="text-2xl font-normal text-text-primary">
-            Join Organization
-          </h2>
-          <p className="text-sm text-text-tertiary">
-            招待コードを入力して組織に参加します
-          </p>
+    <>
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={handleClose}
+        >
+          <div
+            className="bg-white rounded-xl border border-border w-full max-w-md p-8 flex flex-col gap-6 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex flex-col gap-2">
+              <h2 className="text-2xl font-normal text-text-primary">
+                Join Organization
+              </h2>
+              <p className="text-sm text-text-tertiary">
+                招待コードを入力して組織に参加します
+              </p>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+              {/* Invite Code */}
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-text-secondary">
+                  Invite Code <span className="text-error">*</span>
+                </label>
+                <Input
+                  type="text"
+                  placeholder="例: 5dc6-6411-e229"
+                  value={inviteCode}
+                  onChange={setInviteCode}
+                  required
+                />
+              </div>
+
+              {error && <p className="text-sm text-error">{error}</p>}
+
+              {/* Buttons */}
+              <div className="flex gap-3 justify-end">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="px-6 py-2.5 text-sm font-medium text-text-secondary hover:text-text-primary transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? "Joining..." : "Join"}
+                </button>
+              </div>
+
+              {/* Create Organization Link */}
+              <div className="text-center pt-2 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleClose();
+                    setIsCreateModalOpen(true);
+                  }}
+                  className="text-sm text-primary hover:text-primary-hover transition-colors"
+                >
+                  新しい組織を作成
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          {/* Invite Code */}
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-text-secondary">
-              Invite Code <span className="text-error">*</span>
-            </label>
-            <Input
-              type="text"
-              placeholder="例: 5dc6-6411-e229"
-              value={inviteCode}
-              onChange={setInviteCode}
-              required
-            />
-          </div>
-
-          {error && <p className="text-sm text-error">{error}</p>}
-
-          {/* Buttons */}
-          <div className="flex gap-3 justify-end">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="px-6 py-2.5 text-sm font-medium text-text-secondary hover:text-text-primary transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? "Joining..." : "Join"}
-            </button>
-          </div>
-
-          {/* Create Organization Link */}
-          <div className="text-center pt-2 border-t border-border">
-            <button
-              type="button"
-              onClick={() => {
-                handleClose();
-                setIsCreateModalOpen(true);
-              }}
-              className="text-sm text-primary hover:text-primary-hover transition-colors"
-            >
-              新しい組織を作成
-            </button>
-          </div>
-        </form>
-      </div>
+      )}
 
       {/* Create Organization Modal */}
       <CreateOrganizationModal
@@ -146,9 +152,10 @@ export function JoinOrganizationModal({
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={(orgId) => {
           setIsCreateModalOpen(false);
+          onSuccess(orgId);
           router.push(`/organizations/${orgId}`);
         }}
       />
-    </div>
+    </>
   );
 }

@@ -5,6 +5,7 @@ import { Input } from "@/components/atoms/Input";
 import { Textarea } from "@/components/atoms/Textarea";
 import { apiClient } from "@/lib/api-client";
 import { components } from "@/lib/api-schema";
+import { Button } from "../atoms/Button";
 
 type Task = components["schemas"]["Task"];
 
@@ -58,18 +59,21 @@ export function TaskEditModal({
     setIsLoading(true);
 
     try {
-      const { data, error: apiError } = await apiClient.PATCH("/api/tasks/{id}", {
-        params: {
-          path: {
-            id: task.id,
+      const { data, error: apiError } = await apiClient.PATCH(
+        "/api/tasks/{id}",
+        {
+          params: {
+            path: {
+              id: task.id,
+            },
           },
-        },
-        body: {
-          title,
-          description,
-          due_date: dueDate ? new Date(dueDate).toISOString() : null,
-        },
-      });
+          body: {
+            title,
+            description,
+            due_date: dueDate ? new Date(dueDate).toISOString() : null,
+          },
+        }
+      );
 
       if (apiError || !data) {
         setError("タスクの更新に失敗しました。");
@@ -157,20 +161,16 @@ export function TaskEditModal({
 
           {/* Buttons */}
           <div className="flex gap-3 justify-end">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="px-6 py-2.5 text-sm font-medium text-text-secondary hover:text-text-primary transition-colors"
-            >
+            <Button onClick={handleClose} variant="tertiary">
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={isLoading}
-              className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isLoading || !title.trim()}
+              variant="primary"
             >
-              {isLoading ? "Saving..." : "Save Changes"}
-            </button>
+              {isLoading ? "Updating..." : "Update"}
+            </Button>
           </div>
         </form>
       </div>

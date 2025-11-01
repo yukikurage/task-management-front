@@ -342,18 +342,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  organization:
-                    $ref: "#/components/schemas/Organization"
-                  members:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/OrganizationMember"
-                  your_role:
-                    type: string
-                    enum: [owner, member]
-                    example: owner
+                $ref: "#/components/schemas/OrganizationDetail"
         "401":
           description: Not authenticated
           content:
@@ -637,14 +626,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  tasks:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/Task"
-                  pagination:
-                    $ref: "#/components/schemas/Pagination"
+                $ref: "#/components/schemas/TaskListResponse"
         "401":
           description: Not authenticated
           content:
@@ -727,15 +709,10 @@ paths:
               type: object
               required:
                 - text
-                - organization_id
               properties:
                 text:
                   type: string
                   example: "プロジェクトの要件定義を作成し、チームメンバーに共有する。来週までにデザインモックアップを完成させる。"
-                organization_id:
-                  type: integer
-                  format: int64
-                  example: 1
       responses:
         "200":
           description: Tasks generated successfully
@@ -747,14 +724,7 @@ paths:
                   tasks:
                     type: array
                     items:
-                      type: object
-                      properties:
-                        title:
-                          type: string
-                          example: "要件定義の作成"
-                        description:
-                          type: string
-                          example: "プロジェクトの要件定義書を作成する"
+                      $ref: "#/components/schemas/Task"
         "400":
           description: Invalid request body
           content:
@@ -979,7 +949,15 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Task"
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Users assigned successfully
+                  assignments:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TaskAssignment"
         "400":
           description: Invalid request body
           content:
@@ -1043,7 +1021,15 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Task"
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Users unassigned successfully
+                  assignments:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TaskAssignment"
         "400":
           description: Invalid request body
           content:
@@ -1159,9 +1145,6 @@ components:
       required:
         - id
         - name
-        - invite_code
-        - created_at
-        - updated_at
       properties:
         id:
           type: integer
@@ -1173,14 +1156,6 @@ components:
         invite_code:
           type: string
           example: "5dc6-6411-e229"
-        created_at:
-          type: string
-          format: date-time
-          example: 2025-01-01T00:00:00Z
-        updated_at:
-          type: string
-          format: date-time
-          example: 2025-01-01T00:00:00Z
 
     OrganizationWithRole:
       allOf:
@@ -1197,19 +1172,12 @@ components:
     OrganizationMember:
       type: object
       required:
-        - organization_id
-        - user_id
+        - user
         - role
         - joined_at
       properties:
-        organization_id:
-          type: integer
-          format: int64
-          example: 1
-        user_id:
-          type: integer
-          format: int64
-          example: 2
+        user:
+          $ref: "#/components/schemas/User"
         role:
           type: string
           enum: [owner, member]
@@ -1218,9 +1186,23 @@ components:
           type: string
           format: date-time
           example: 2025-01-01T00:00:00Z
-        user:
-          description: User object (only included when explicitly loaded)
-          $ref: "#/components/schemas/User"
+
+    OrganizationDetail:
+      allOf:
+        - $ref: "#/components/schemas/Organization"
+        - type: object
+          required:
+            - members
+            - your_role
+          properties:
+            members:
+              type: array
+              items:
+                $ref: "#/components/schemas/OrganizationMember"
+            your_role:
+              type: string
+              enum: [owner, member]
+              example: owner
 
     Task:
       type: object
@@ -1286,25 +1268,77 @@ components:
     TaskAssignment:
       type: object
       required:
-        - task_id
-        - user_id
+        - user
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+
+    TaskListItem:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - status
+        - creator_id
         - created_at
       properties:
-        task_id:
+        id:
           type: integer
           format: int64
           example: 1
-        user_id:
+        title:
+          type: string
+          example: Complete project documentation
+        description:
+          type: string
+          example: Write comprehensive API documentation
+        status:
+          type: string
+          enum: [TODO, DONE]
+          example: TODO
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+          example: 2025-12-31T23:59:59Z
+        creator_id:
           type: integer
           format: int64
-          example: 2
+          example: 1
+        creator:
+          $ref: "#/components/schemas/User"
         created_at:
           type: string
           format: date-time
           example: 2025-01-01T00:00:00Z
-        user:
-          description: User object (only included when explicitly loaded)
-          $ref: "#/components/schemas/User"
+
+    TaskListResponse:
+      type: object
+      required:
+        - tasks
+        - page
+        - page_size
+        - total_count
+        - total_pages
+      properties:
+        tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaskListItem"
+        page:
+          type: integer
+          example: 1
+        page_size:
+          type: integer
+          example: 20
+        total_count:
+          type: integer
+          format: int64
+          example: 42
+        total_pages:
+          type: integer
+          example: 3
 
     Pagination:
       type: object

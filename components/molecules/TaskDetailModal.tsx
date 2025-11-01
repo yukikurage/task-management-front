@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { ClockIcon } from "@heroicons/react/24/outline";
+import { useEffect, useState } from "react";
+import { ClockIcon, PlusIcon } from "@heroicons/react/24/outline";
 import { components } from "@/lib/api-schema";
 import { apiClient } from "@/lib/api-client";
 import { AssignUserModal } from "./AssignUserModal";
@@ -22,11 +22,43 @@ export function TaskDetailModal({
   task,
   onTaskUpdate,
 }: TaskDetailModalProps) {
+  const [taskDetail, setTaskDetail] = useState<Task | null>(task);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isUnassigning, setIsUnassigning] = useState(false);
 
-  if (!isOpen || !task) return null;
+  useEffect(() => {
+    if (task) {
+      setTaskDetail(task);
+    }
+  }, [task]);
+
+  const refreshTaskDetail = async () => {
+    if (!taskDetail?.id) return;
+
+    try {
+      const { data, error } = await apiClient.GET("/api/tasks/{id}", {
+        params: {
+          path: {
+            id: taskDetail.id,
+          },
+        },
+      });
+
+      if (error) {
+        console.error("Failed to refresh task detail:", error);
+        return;
+      }
+
+      if (data) {
+        setTaskDetail(data);
+      }
+    } catch (err) {
+      console.error("Error refreshing task detail:", err);
+    }
+  };
+
+  if (!isOpen || !taskDetail) return null;
 
   const formatDate = (dateString?: string | null) => {
     if (!dateString) return "";
@@ -35,14 +67,14 @@ export function TaskDetailModal({
   };
 
   const handleUnassignUser = async (userId: number) => {
-    if (!task?.id) return;
+    if (!taskDetail?.id) return;
 
     setIsUnassigning(true);
     try {
       const { error } = await apiClient.POST("/api/tasks/{id}/unassign", {
         params: {
           path: {
-            id: task.id,
+            id: taskDetail.id,
           },
         },
         body: {
@@ -54,6 +86,8 @@ export function TaskDetailModal({
         console.error("Failed to unassign user:", error);
         return;
       }
+
+      await refreshTaskDetail();
 
       if (onTaskUpdate) {
         onTaskUpdate();
@@ -78,10 +112,10 @@ export function TaskDetailModal({
         <div className="flex justify-between items-start">
           <div className="flex flex-col gap-1">
             <p className="text-sm font-normal text-text-secondary">
-              {task.organization?.name || "組織なし"} /
+              {taskDetail.organization?.name || "組織なし"} /
             </p>
             <h2 className="text-2xl font-normal text-text-primary">
-              {task.title}
+              {taskDetail.title}
             </h2>
           </div>
 
@@ -95,32 +129,32 @@ export function TaskDetailModal({
         </div>
 
         {/* Due Date */}
-        {task.due_date && (
+        {taskDetail.due_date && (
           <div className="flex gap-1 items-center">
             <ClockIcon className="w-3 h-3 text-text-tertiary" />
             <p className="text-sm font-normal text-text-tertiary">
-              {formatDate(task.due_date)}
+              {formatDate(taskDetail.due_date)}
             </p>
           </div>
         )}
 
         {/* Assigned Users */}
         <div className="flex flex-col gap-1.5">
-          {task.assignments && task.assignments.length > 0 && (
+          {taskDetail.assignments && taskDetail.assignments.length > 0 && (
             <div className="flex gap-2 flex-wrap">
-              {task.assignments.map((assignment) => (
+              {taskDetail.assignments.map((assignment) => (
                 <div
-                  key={assignment.user_id}
+                  key={assignment.user.id}
                   className="px-3 py-1.5 bg-white border border-border rounded-full flex items-center gap-1"
                 >
                   <p className="text-xs font-medium">
                     <span className="text-text-tertiary">@</span>
                     <span className="text-text-secondary">
-                      {assignment.user?.username}
+                      {assignment.user.username}
                     </span>
                   </p>
                   <button
-                    onClick={() => handleUnassignUser(assignment.user_id)}
+                    onClick={() => handleUnassignUser(assignment.user.id)}
                     disabled={isUnassigning}
                     className="text-xs font-bold text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -136,9 +170,7 @@ export function TaskDetailModal({
             onClick={() => setIsAssignModalOpen(true)}
             className="flex items-center gap-1 py-1 text-xs font-bold text-primary hover:text-primary-hover transition-colors"
           >
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M6 1V11M1 6H11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
+            <PlusIcon className="h-3 w-3" />
             Assign
           </button>
         </div>
@@ -146,7 +178,7 @@ export function TaskDetailModal({
         {/* Description */}
         <div className="flex-1 py-2 overflow-y-auto">
           <p className="text-base font-normal text-text-secondary whitespace-pre-wrap">
-            {task.description}
+            {taskDetail.description}
           </p>
         </div>
 
@@ -160,16 +192,17 @@ export function TaskDetailModal({
       </div>
 
       {/* Assign User Modal */}
-      {task.organization_id && (
+      {taskDetail.organization_id && (
         <AssignUserModal
           isOpen={isAssignModalOpen}
           onClose={() => setIsAssignModalOpen(false)}
-          taskId={task.id}
-          organizationId={task.organization_id}
+          taskId={taskDetail.id}
+          organizationId={taskDetail.organization_id}
           currentAssignments={
-            task.assignments?.map((a) => a.user_id) || []
+            taskDetail.assignments?.map((a) => a.user.id) || []
           }
           onSuccess={() => {
+            refreshTaskDetail();
             if (onTaskUpdate) {
               onTaskUpdate();
             }
@@ -181,8 +214,9 @@ export function TaskDetailModal({
       <TaskEditModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        task={task}
+        task={taskDetail}
         onSuccess={() => {
+          refreshTaskDetail();
           if (onTaskUpdate) {
             onTaskUpdate();
           }

@@ -382,17 +382,7 @@ export interface components {
             /** @example My Team */
             name: string;
             /** @example 5dc6-6411-e229 */
-            invite_code: string;
-            /**
-             * Format: date-time
-             * @example 2025-01-01T00:00:00Z
-             */
-            created_at: string;
-            /**
-             * Format: date-time
-             * @example 2025-01-01T00:00:00Z
-             */
-            updated_at: string;
+            invite_code?: string;
         };
         OrganizationWithRole: components["schemas"]["Organization"] & {
             /**
@@ -402,16 +392,7 @@ export interface components {
             role: "owner" | "member";
         };
         OrganizationMember: {
-            /**
-             * Format: int64
-             * @example 1
-             */
-            organization_id: number;
-            /**
-             * Format: int64
-             * @example 2
-             */
-            user_id: number;
+            user: components["schemas"]["User"];
             /**
              * @example member
              * @enum {string}
@@ -422,8 +403,14 @@ export interface components {
              * @example 2025-01-01T00:00:00Z
              */
             joined_at: string;
-            /** @description User object (only included when explicitly loaded) */
-            user?: components["schemas"]["User"];
+        };
+        OrganizationDetail: components["schemas"]["Organization"] & {
+            members: components["schemas"]["OrganizationMember"][];
+            /**
+             * @example owner
+             * @enum {string}
+             */
+            your_role: "owner" | "member";
         };
         Task: {
             /**
@@ -475,23 +462,53 @@ export interface components {
             assignments?: components["schemas"]["TaskAssignment"][];
         };
         TaskAssignment: {
+            user: components["schemas"]["User"];
+        };
+        TaskListItem: {
             /**
              * Format: int64
              * @example 1
              */
-            task_id: number;
+            id: number;
+            /** @example Complete project documentation */
+            title: string;
+            /** @example Write comprehensive API documentation */
+            description: string;
+            /**
+             * @example TODO
+             * @enum {string}
+             */
+            status: "TODO" | "DONE";
+            /**
+             * Format: date-time
+             * @example 2025-12-31T23:59:59Z
+             */
+            due_date?: string | null;
             /**
              * Format: int64
-             * @example 2
+             * @example 1
              */
-            user_id: number;
+            creator_id: number;
+            creator?: components["schemas"]["User"];
             /**
              * Format: date-time
              * @example 2025-01-01T00:00:00Z
              */
             created_at: string;
-            /** @description User object (only included when explicitly loaded) */
-            user?: components["schemas"]["User"];
+        };
+        TaskListResponse: {
+            tasks: components["schemas"]["TaskListItem"][];
+            /** @example 1 */
+            page: number;
+            /** @example 20 */
+            page_size: number;
+            /**
+             * Format: int64
+             * @example 42
+             */
+            total_count: number;
+            /** @example 3 */
+            total_pages: number;
         };
         Pagination: {
             /** @example 1 */
@@ -865,15 +882,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        organization?: components["schemas"]["Organization"];
-                        members?: components["schemas"]["OrganizationMember"][];
-                        /**
-                         * @example owner
-                         * @enum {string}
-                         */
-                        your_role?: "owner" | "member";
-                    };
+                    "application/json": components["schemas"]["OrganizationDetail"];
                 };
             };
             /** @description Not authenticated */
@@ -1159,10 +1168,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        tasks?: components["schemas"]["Task"][];
-                        pagination?: components["schemas"]["Pagination"];
-                    };
+                    "application/json": components["schemas"]["TaskListResponse"];
                 };
             };
             /** @description Not authenticated */
@@ -1254,11 +1260,6 @@ export interface operations {
                 "application/json": {
                     /** @example プロジェクトの要件定義を作成し、チームメンバーに共有する。来週までにデザインモックアップを完成させる。 */
                     text: string;
-                    /**
-                     * Format: int64
-                     * @example 1
-                     */
-                    organization_id: number;
                 };
             };
         };
@@ -1270,12 +1271,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        tasks?: {
-                            /** @example 要件定義の作成 */
-                            title?: string;
-                            /** @example プロジェクトの要件定義書を作成する */
-                            description?: string;
-                        }[];
+                        tasks?: components["schemas"]["Task"][];
                     };
                 };
             };
@@ -1506,7 +1502,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Task"];
+                    "application/json": {
+                        /** @example Users assigned successfully */
+                        message?: string;
+                        assignments?: components["schemas"]["TaskAssignment"][];
+                    };
                 };
             };
             /** @description Invalid request body */
@@ -1577,7 +1577,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Task"];
+                    "application/json": {
+                        /** @example Users unassigned successfully */
+                        message?: string;
+                        assignments?: components["schemas"]["TaskAssignment"][];
+                    };
                 };
             };
             /** @description Invalid request body */

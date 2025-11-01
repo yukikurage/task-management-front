@@ -18,7 +18,7 @@ export function Navigation({
   const baseClasses =
     "h-12 rounded-lg border w-full max-w-[280px] cursor-pointer";
   const contentClasses = "flex h-12 items-center px-5 py-2 gap-2.5";
-  const textClasses = "font-bold text-base whitespace-nowrap";
+  const textClasses = "font-base text-base whitespace-nowrap";
 
   const variantClasses = {
     home: {
@@ -26,14 +26,14 @@ export function Navigation({
       text: "text-nav-home-text",
     },
     default: {
-      container: "bg-nav-default-bg border-nav-default-border",
+      container: "bg-nav-default-bg/50 border-nav-default-border",
       text: "text-nav-default-text",
     },
   };
 
   // Active state overrides variant styles
   const containerClasses = isActive
-    ? "bg-home-bg border-primary"
+    ? "bg-nav-home-bg border-primary shadow-lg shadow-primary/5"
     : variantClasses[variant].container;
 
   const textColorClasses = isActive
