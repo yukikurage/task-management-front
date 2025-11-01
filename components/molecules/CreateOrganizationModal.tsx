@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Input } from "@/components/atoms/Input";
 import { apiClient } from "@/lib/api-client";
+import { Button } from "../atoms/Button";
 
 interface CreateOrganizationModalProps {
   isOpen: boolean;
@@ -78,9 +79,7 @@ export function CreateOrganizationModal({
           <h2 className="text-2xl font-normal text-text-primary">
             Create New Organization
           </h2>
-          <p className="text-sm text-text-tertiary">
-            新しい組織を作成します
-          </p>
+          <p className="text-sm text-text-tertiary">新しい組織を作成します</p>
         </div>
 
         {/* Form */}
@@ -103,20 +102,12 @@ export function CreateOrganizationModal({
 
           {/* Buttons */}
           <div className="flex gap-3 justify-end">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="px-6 py-2.5 text-sm font-medium text-text-secondary hover:text-text-primary transition-colors"
-            >
+            <Button onClick={handleClose} variant="tertiary" type="button">
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? "Creating..." : "Create"}
-            </button>
+            </Button>
+            <Button type="submit" variant="primary" disabled={isLoading}>
+              {isLoading ? "Creating..." : "Create Organization"}
+            </Button>
           </div>
         </form>
       </div>

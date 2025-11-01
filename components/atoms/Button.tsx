@@ -4,7 +4,7 @@ interface ButtonProps {
   children: string;
   onClick?: () => void;
   type?: "button" | "submit";
-  variant?: "primary" | "secondary" | "tertiary";
+  variant?: "primary" | "secondary" | "tertiary" | "warning";
   disabled?: boolean;
 }
 
@@ -20,6 +20,7 @@ export function Button({
     secondary:
       "bg-white text-primary border border-primary hover:bg-primary-light",
     tertiary: "text-text-secondary hover:bg-gray-200",
+    warning: "bg-error text-white hover:bg-error/90",
   };
 
   return (

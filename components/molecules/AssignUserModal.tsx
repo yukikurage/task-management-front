@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { apiClient } from "@/lib/api-client";
 import { components } from "@/lib/api-schema";
+import { Button } from "../atoms/Button";
 
 type OrganizationMember = components["schemas"]["OrganizationMember"];
 
@@ -172,20 +173,16 @@ export function AssignUserModal({
 
           {/* Buttons */}
           <div className="flex gap-3 justify-end">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="px-6 py-2.5 text-sm font-medium text-text-secondary hover:text-text-primary transition-colors"
-            >
+            <Button onClick={handleClose} variant="tertiary" type="button">
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
+              variant="primary"
               disabled={isSubmitting || selectedUserIds.length === 0}
-              className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? "Assigning..." : "Assign"}
-            </button>
+              {isSubmitting ? "Assigning..." : "Assign Selected"}
+            </Button>
           </div>
         </form>
       </div>

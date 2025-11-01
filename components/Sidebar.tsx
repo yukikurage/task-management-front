@@ -8,7 +8,7 @@ import { apiClient } from "@/lib/api-client";
 import { components } from "@/lib/api-schema";
 import {
   ArrowRightOnRectangleIcon,
-  PlusSmallIcon,
+  PlusIcon,
   UserIcon,
 } from "@heroicons/react/24/outline";
 
@@ -96,7 +96,7 @@ export function Sidebar() {
           onClick={() => setIsJoinModalOpen(true)}
           className="flex gap-2.5 items-center px-3 py-2 rounded-lg hover:bg-neutral-100 transition-colors w-full"
         >
-          <PlusSmallIcon className="h-5 w-5 shrink-0 text-text-secondary" />
+          <PlusIcon className="h-5 w-5 shrink-0 text-text-secondary" />
           <p className="text-sm font-bold text-text-secondary">組織の追加</p>
         </button>
       </div>

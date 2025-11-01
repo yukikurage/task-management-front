@@ -14,6 +14,8 @@ interface TaskEditModalProps {
   onClose: () => void;
   onSuccess: () => void;
   task: Task | null;
+  canDelete?: boolean;
+  onDelete?: () => void;
 }
 
 export function TaskEditModal({
@@ -21,12 +23,15 @@ export function TaskEditModal({
   onClose,
   onSuccess,
   task,
+  canDelete = false,
+  onDelete,
 }: TaskEditModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Pre-populate form when task changes
   useEffect(() => {
@@ -96,6 +101,37 @@ export function TaskEditModal({
 
   if (!isOpen || !task) return null;
 
+  const handleDelete = async () => {
+    if (!task?.id || !canDelete) return;
+    const confirmed = window.confirm("タスクを削除しますか？");
+    if (!confirmed) return;
+
+    setError("");
+    setIsDeleting(true);
+    try {
+      const { error: apiError } = await apiClient.DELETE("/api/tasks/{id}", {
+        params: {
+          path: {
+            id: task.id,
+          },
+        },
+      });
+
+      if (apiError) {
+        setError("タスクの削除に失敗しました。");
+        return;
+      }
+
+      if (onDelete) {
+        onDelete();
+      }
+    } catch (err) {
+      setError("タスクの削除中にエラーが発生しました。");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
@@ -160,17 +196,30 @@ export function TaskEditModal({
           {error && <p className="text-sm text-error">{error}</p>}
 
           {/* Buttons */}
-          <div className="flex gap-3 justify-end">
-            <Button onClick={handleClose} variant="tertiary">
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isLoading || !title.trim()}
-              variant="primary"
-            >
-              {isLoading ? "Updating..." : "Update"}
-            </Button>
+          <div className="flex items-center justify-between gap-3">
+            {canDelete ? (
+              <Button
+                onClick={handleDelete}
+                variant="warning"
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Delete Task"}
+              </Button>
+            ) : (
+              <div />
+            )}
+            <div className="flex gap-3">
+              <Button onClick={handleClose} variant="tertiary">
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isLoading || isDeleting || !title.trim()}
+                variant="primary"
+              >
+                {isLoading ? "Updating..." : "Update"}
+              </Button>
+            </div>
           </div>
         </form>
       </div>

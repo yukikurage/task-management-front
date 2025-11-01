@@ -187,14 +187,13 @@ export function TaskCreateModal({
                       onChange={setNewOrgName}
                     />
                   </div>
-                  <button
-                    type="button"
+                  <Button
                     onClick={handleCreateOrganization}
-                    disabled={isCreatingOrg || !newOrgName.trim()}
-                    className="px-6 py-2.5 bg-primary hover:bg-primary-hover text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                    variant="primary"
+                    disabled={isCreatingOrg}
                   >
                     {isCreatingOrg ? "Creating..." : "Create"}
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : (

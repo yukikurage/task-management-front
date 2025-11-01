@@ -8,6 +8,7 @@ import { AssignUserModal } from "./AssignUserModal";
 import { TaskEditModal } from "./TaskEditModal";
 
 type Task = components["schemas"]["Task"];
+type User = components["schemas"]["User"];
 
 interface TaskDetailModalProps {
   isOpen: boolean;
@@ -26,12 +27,36 @@ export function TaskDetailModal({
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isUnassigning, setIsUnassigning] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
     if (task) {
       setTaskDetail(task);
     }
   }, [task]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let isMounted = true;
+
+    const fetchCurrentUser = async () => {
+      try {
+        const { data, error } = await apiClient.GET("/api/auth/me");
+        if (!error && data && isMounted) {
+          setCurrentUser(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch current user:", err);
+      }
+    };
+
+    fetchCurrentUser();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen]);
 
   const refreshTaskDetail = async () => {
     if (!taskDetail?.id) return;
@@ -58,6 +83,14 @@ export function TaskDetailModal({
     }
   };
 
+  const isCreator = currentUser?.id === taskDetail?.creator_id;
+
+  useEffect(() => {
+    if (!isCreator && isAssignModalOpen) {
+      setIsAssignModalOpen(false);
+    }
+  }, [isCreator, isAssignModalOpen]);
+
   if (!isOpen || !taskDetail) return null;
 
   const formatDate = (dateString?: string | null) => {
@@ -68,6 +101,7 @@ export function TaskDetailModal({
 
   const handleUnassignUser = async (userId: number) => {
     if (!taskDetail?.id) return;
+    if (!isCreator) return;
 
     setIsUnassigning(true);
     try {
@@ -138,6 +172,16 @@ export function TaskDetailModal({
           </div>
         )}
 
+        {/* Creator */}
+        <div className="text-sm text-text-tertiary">
+          Created by{" "}
+          <span className="text-text-secondary font-medium">
+            {taskDetail.creator?.username
+              ? `@${taskDetail.creator.username}`
+              : `User #${taskDetail.creator_id}`}
+          </span>
+        </div>
+
         {/* Assigned Users */}
         <div className="flex flex-col gap-1.5">
           {taskDetail.assignments && taskDetail.assignments.length > 0 && (
@@ -153,26 +197,30 @@ export function TaskDetailModal({
                       {assignment.user.username}
                     </span>
                   </p>
-                  <button
-                    onClick={() => handleUnassignUser(assignment.user.id)}
-                    disabled={isUnassigning}
-                    className="text-xs font-bold text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    ✕
-                  </button>
+                  {isCreator && (
+                    <button
+                      onClick={() => handleUnassignUser(assignment.user.id)}
+                      disabled={isUnassigning}
+                      className="text-xs font-bold text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
           )}
 
           {/* Assign Button */}
-          <button
-            onClick={() => setIsAssignModalOpen(true)}
-            className="flex items-center gap-1 py-1 text-xs font-bold text-primary hover:text-primary-hover transition-colors"
-          >
-            <PlusIcon className="h-3 w-3" />
-            Assign
-          </button>
+          {isCreator && (
+            <button
+              onClick={() => setIsAssignModalOpen(true)}
+              className="flex items-center gap-1 py-1 text-xs font-bold text-primary hover:text-primary-hover transition-colors"
+            >
+              <PlusIcon className="h-3 w-3" />
+              Assign
+            </button>
+          )}
         </div>
 
         {/* Description */}
@@ -192,7 +240,7 @@ export function TaskDetailModal({
       </div>
 
       {/* Assign User Modal */}
-      {taskDetail.organization_id && (
+      {isCreator && taskDetail.organization_id && (
         <AssignUserModal
           isOpen={isAssignModalOpen}
           onClose={() => setIsAssignModalOpen(false)}
@@ -215,6 +263,15 @@ export function TaskDetailModal({
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         task={taskDetail}
+        canDelete={isCreator}
+        onDelete={() => {
+          setIsEditModalOpen(false);
+          setTaskDetail(null);
+          onClose();
+          if (onTaskUpdate) {
+            onTaskUpdate();
+          }
+        }}
         onSuccess={() => {
           refreshTaskDetail();
           if (onTaskUpdate) {
