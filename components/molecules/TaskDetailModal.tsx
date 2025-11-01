@@ -147,12 +147,14 @@ export function TaskDetailModal({
           </div>
 
           {/* Edit Button */}
-          <button
-            onClick={() => setIsEditModalOpen(true)}
-            className="text-sm font-normal text-primary hover:text-primary-hover transition-colors"
-          >
-            Edit
-          </button>
+          {isCreator && (
+            <button
+              onClick={() => setIsEditModalOpen(true)}
+              className="text-sm font-normal text-primary hover:text-primary-hover transition-colors"
+            >
+              Edit
+            </button>
+          )}
         </div>
 
         {/* Due Date */}
@@ -190,7 +192,7 @@ export function TaskDetailModal({
                       {assignment.user.username}
                     </span>
                   </p>
-                  {
+                  {isCreator && (
                     <button
                       onClick={() => handleUnassignUser(assignment.user.id)}
                       disabled={isUnassigning}
@@ -198,14 +200,14 @@ export function TaskDetailModal({
                     >
                       ✕
                     </button>
-                  }
+                  )}
                 </div>
               ))}
             </div>
           )}
 
           {/* Assign Button */}
-          {
+          {isCreator && (
             <button
               onClick={() => setIsAssignModalOpen(true)}
               className="flex items-center gap-1 py-1 text-xs font-bold text-primary hover:text-primary-hover transition-colors"
@@ -213,7 +215,7 @@ export function TaskDetailModal({
               <PlusIcon className="h-3 w-3" />
               Assign
             </button>
-          }
+          )}
         </div>
 
         {/* Description */}
