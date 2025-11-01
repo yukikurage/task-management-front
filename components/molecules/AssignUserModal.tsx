@@ -115,12 +115,12 @@ export function AssignUserModal({
     onClose();
   };
 
-  if (!isOpen) return null;
-
   // Filter out already assigned users
   const availableMembers = members.filter(
     (member) => !currentAssignments.includes(member.user.id)
   );
+
+  if (!isOpen) return null;
 
   return (
     <div

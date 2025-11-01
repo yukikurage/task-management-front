@@ -85,12 +85,6 @@ export function TaskDetailModal({
 
   const isCreator = currentUser?.id === taskDetail?.creator_id;
 
-  useEffect(() => {
-    if (!isCreator && isAssignModalOpen) {
-      setIsAssignModalOpen(false);
-    }
-  }, [isCreator, isAssignModalOpen]);
-
   if (!isOpen || !taskDetail) return null;
 
   const formatDate = (dateString?: string | null) => {
@@ -101,7 +95,6 @@ export function TaskDetailModal({
 
   const handleUnassignUser = async (userId: number) => {
     if (!taskDetail?.id) return;
-    if (!isCreator) return;
 
     setIsUnassigning(true);
     try {
@@ -197,7 +190,7 @@ export function TaskDetailModal({
                       {assignment.user.username}
                     </span>
                   </p>
-                  {isCreator && (
+                  {
                     <button
                       onClick={() => handleUnassignUser(assignment.user.id)}
                       disabled={isUnassigning}
@@ -205,14 +198,14 @@ export function TaskDetailModal({
                     >
                       ✕
                     </button>
-                  )}
+                  }
                 </div>
               ))}
             </div>
           )}
 
           {/* Assign Button */}
-          {isCreator && (
+          {
             <button
               onClick={() => setIsAssignModalOpen(true)}
               className="flex items-center gap-1 py-1 text-xs font-bold text-primary hover:text-primary-hover transition-colors"
@@ -220,7 +213,7 @@ export function TaskDetailModal({
               <PlusIcon className="h-3 w-3" />
               Assign
             </button>
-          )}
+          }
         </div>
 
         {/* Description */}
@@ -240,7 +233,7 @@ export function TaskDetailModal({
       </div>
 
       {/* Assign User Modal */}
-      {isCreator && taskDetail.organization_id && (
+      {taskDetail.organization_id && (
         <AssignUserModal
           isOpen={isAssignModalOpen}
           onClose={() => setIsAssignModalOpen(false)}
